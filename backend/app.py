@@ -9,8 +9,58 @@ import torch.nn as nn
 from torchvision import models, transforms
 import timm
 import io
+from pathlib import Path
 from image_quality import quality_checker
 from gradcam import pil_to_base64
+
+
+# ============= AUTO-DOWNLOAD MODELS FROM HUGGING FACE =============
+def ensure_models_from_huggingface():
+    """Download models from Hugging Face if not present locally."""
+    models_dir = Path("models")
+    models_dir.mkdir(exist_ok=True)
+
+    model_files = [
+        "resnet_realistic.pth",
+        "densenet_realistic.pth",
+        "ghostnet_realistic.pth",
+        "agri_realistic.pth",
+    ]
+
+    missing_models = [f for f in model_files if not (models_dir / f).exists()]
+
+    if missing_models:
+        print(f"⚠ Missing models: {missing_models}")
+        print("📥 Downloading from Hugging Face...")
+
+        try:
+            from huggingface_hub import hf_hub_download
+
+            REPO_ID = "adb043/agriscan_models"
+
+            for model_file in missing_models:
+                print(f"📥 Downloading {model_file}...")
+                hf_hub_download(
+                    repo_id=REPO_ID,
+                    filename=model_file,
+                    local_dir=str(models_dir),
+                    local_dir_use_symlinks=False,
+                )
+                print(f"✓ Downloaded {model_file}")
+
+            print("✅ All models downloaded successfully!")
+        except Exception as e:
+            print(f"✗ Error downloading models: {e}")
+            print(
+                "📝 Make sure huggingface_hub is installed: pip install huggingface_hub"
+            )
+    else:
+        print("✓ All model files found locally")
+
+
+# Download models if needed (runs on startup)
+ensure_models_from_huggingface()
+# ==================================================================
 
 app = FastAPI()
 
